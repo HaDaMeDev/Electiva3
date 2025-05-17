@@ -7,12 +7,14 @@ import torch
 import logging
 from concurrent.futures import ThreadPoolExecutor
 import uvicorn
+from typing import Optional
+import os
 
 # Configuración inicial
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="API de Reseñas de Películas", version="1.1")
+app = FastAPI(title="API de Reseñas de Películas", version="1.2")
 templates = Jinja2Templates(directory="templates")
 
 # Variables de estado
@@ -30,7 +32,7 @@ def health_check():
         "analysis_done": analysis_done
     }
 
-# Carga de datos mejorada
+# Carga de datos
 def load_data():
     global df, data_loaded
     try:
@@ -42,7 +44,7 @@ def load_data():
         logger.error(f"Error cargando datos: {str(e)}")
         return False
 
-# Análisis de sentimientos optimizado
+# Análisis de sentimientos
 def analyze_sentiments():
     global sentiment_model, analysis_done
     try:
@@ -91,20 +93,56 @@ async def home(request: Request):
         "total_reseñas": len(df) if data_loaded else 0
     })
 
+# GET para mostrar el formulario
 @app.get("/formulario", response_class=HTMLResponse)
-async def show_form(request: Request):
+async def mostrar_formulario(request: Request):
     if not data_loaded:
         return templates.TemplateResponse("error.html", {
             "request": request,
             "message": "Base de datos no disponible"
         })
     
+    if not analysis_done:
+        return templates.TemplateResponse("espera.html", {
+            "request": request,
+            "message": "El análisis de sentimientos está en progreso...",
+            "refresh_interval": 5
+        })
+    
     generos = sorted(df['genero'].dropna().unique()) if not df.empty else []
     return templates.TemplateResponse("formulario.html", {
         "request": request,
         "generos": generos,
-        "analysis_done": analysis_done
+        "sentimientos": ["positivo", "neutral", "negativo"]
     })
+
+# POST para procesar el formulario
+@app.post("/formulario", response_class=HTMLResponse)
+async def procesar_formulario(
+    request: Request,
+    sentimiento: Optional[str] = Form(None),
+    genero: Optional[str] = Form(None),
+    top: int = Form(5)
+):
+    try:
+        df_filtrado = df.copy()
+        if sentimiento:
+            df_filtrado = df_filtrado[df_filtrado["sentimiento"] == sentimiento]
+        if genero:
+            df_filtrado = df_filtrado[df_filtrado["genero"].str.lower() == genero.lower()]
+
+        ranking = df_filtrado["pelicula"].value_counts().head(top).to_dict()
+        
+        return templates.TemplateResponse("resultado.html", {
+            "request": request,
+            "ranking": ranking,
+            "sentimiento": sentimiento,
+            "genero": genero,
+            "top": top
+        })
+    except Exception as e:
+        logger.error(f"Error procesando formulario: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
