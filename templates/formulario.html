@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Filtrar Películas</title>
+</head>
+<body>
+    <h1>Filtrar Películas</h1>
+    <form method="post">
+        <label for="sentimiento">Sentimiento:</label>
+        <select name="sentimiento" id="sentimiento">
+            <option value="">Todos</option>
+            {% for sent in sentimientos %}
+                <option value="{{ sent }}">{{ sent|capitalize }}</option>
+            {% endfor %}
+        </select>
+        
+        <label for="genero">Género:</label>
+        <select name="genero" id="genero">
+            <option value="">Todos</option>
+            {% for gen in generos %}
+                <option value="{{ gen }}">{{ gen }}</option>
+            {% endfor %}
+        </select>
+        
+        <label for="top">Top:</label>
+        <input type="number" name="top" id="top" min="1" value="5">
+        
+        <button type="submit">Filtrar</button>
+    </form>
+</body>
+</html>

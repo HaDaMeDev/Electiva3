@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Resultados</title>
+</head>
+<body>
+    <h1>Top {{ top }} Películas</h1>
+    {% if sentimiento %}
+        <p>Filtrado por sentimiento: <strong>{{ sentimiento }}</strong></p>
+    {% endif %}
+    {% if genero %}
+        <p>Filtrado por género: <strong>{{ genero }}</strong></p>
+    {% endif %}
+    
+    <ol>
+        {% for pelicula, count in ranking.items() %}
+            <li>{{ pelicula }} ({{ count }} reseñas)</li>
+        {% endfor %}
+    </ol>
+    
+    <a href="/formulario">Nueva búsqueda</a>
+</body>
+</html>
