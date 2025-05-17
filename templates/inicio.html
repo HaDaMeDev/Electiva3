@@ -1,33 +1,15 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análisis de Reseñas</title>
-    <style>
-        .status-ready { color: green; }
-        .status-loading { color: orange; }
-        .status-error { color: red; }
-    </style>
+    <title>Estado del Sistema</title>
 </head>
 <body>
-    <h1>Sistema de Análisis de Sentimientos</h1>
-    
-    <div class="status">
-        {% if status == 'ready' %}
-            <p class="status-ready">✅ Sistema listo</p>
-        {% else %}
-            <p class="status-loading">⏳ Sistema cargando...</p>
-        {% endif %}
-    </div>
-
-    <div class="stats">
-        {% if data_ready %}
-            <p>Reseñas disponibles: {{ total_reseñas }}</p>
-            <a href="/formulario">Ir al formulario</a>
-        {% else %}
-            <p class="status-error">⚠️ Datos no disponibles</p>
-        {% endif %}
-    </div>
+    <h1>Análisis de Reseñas</h1>
+    {% if ready %}
+        <p>✅ Sistema listo ({{ total }} reseñas procesadas)</p>
+        <a href="/formulario">Ir al formulario</a>
+    {% else %}
+        <p>⏳ Cargando análisis inicial...</p>
+    {% endif %}
 </body>
 </html>

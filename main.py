@@ -5,144 +5,99 @@ import pandas as pd
 from transformers import pipeline
 import torch
 import logging
-from concurrent.futures import ThreadPoolExecutor
-import uvicorn
 from typing import Optional
+import uvicorn
 import os
 
-# Configuración inicial
+# Configuración
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="API de Reseñas de Películas", version="1.2")
+app = FastAPI(title="API de Reseñas", version="1.3")
 templates = Jinja2Templates(directory="templates")
 
-# Variables de estado
-df = pd.DataFrame()  # DataFrame vacío por defecto
+# Variables globales (se ejecutan solo una vez al iniciar)
+df = pd.DataFrame()
 sentiment_model = None
-analysis_done = False
-data_loaded = False
+analysis_complete = False
 
-# Health Check
-@app.get("/health")
-def health_check():
-    return {
-        "status": "ok",
-        "data_loaded": data_loaded,
-        "analysis_done": analysis_done
-    }
-
-# Carga de datos
-def load_data():
-    global df, data_loaded
+# Carga y análisis único al iniciar
+@app.on_event("startup")
+def startup_analysis():
+    global df, sentiment_model, analysis_complete
+    
     try:
+        # 1. Cargar datos
+        logger.info("Cargando dataset...")
         df = pd.read_csv("reseñas_peliculas_separador_punto_coma.csv", sep=";")
-        data_loaded = True
-        logger.info("Datos cargados exitosamente")
-        return True
-    except Exception as e:
-        logger.error(f"Error cargando datos: {str(e)}")
-        return False
-
-# Análisis de sentimientos
-def analyze_sentiments():
-    global sentiment_model, analysis_done
-    try:
-        logger.info("Iniciando análisis de sentimientos...")
+        
+        # 2. Cargar y ejecutar modelo UNA SOLA VEZ
+        logger.info("Cargando modelo de sentimientos...")
         sentiment_model = pipeline(
             "sentiment-analysis",
-            model="distilbert-base-uncased-finetuned-sst-2-english",
-            device=-1,
-            truncation=True
+            model="distilbert-base-uncased-finetuned-sst-2-english",  # Modelo ligero
+            device=-1  # Forzar CPU
         )
         
-        # Procesamiento por lotes pequeños
-        batch_size = 4
+        # 3. Aplicar análisis
+        logger.info("Ejecutando análisis...")
         texts = df['razon'].astype(str).tolist()
-        sentiments = []
+        df['sentimiento'] = [
+            "positivo" if result['label'] == "POSITIVE" else "negativo"
+            for result in sentiment_model(texts)
+        ]
         
-        for i in range(0, len(texts), batch_size):
-            batch = texts[i:i + batch_size]
-            try:
-                results = sentiment_model(batch)
-                sentiments.extend([
-                    "positivo" if res['label'] == "POSITIVE" else "negativo"
-                    for res in results
-                ])
-            except Exception as e:
-                logger.warning(f"Error en lote {i}: {str(e)}")
-                sentiments.extend(["error"] * len(batch))
+        analysis_complete = True
+        logger.info("✅ Análisis completado (una sola ejecución)")
         
-        df['sentimiento'] = sentiments
-        analysis_done = True
-        logger.info("Análisis completado")
     except Exception as e:
-        logger.error(f"Error en análisis: {str(e)}")
-
-# Cargar datos al iniciar
-if load_data():
-    ThreadPoolExecutor().submit(analyze_sentiments)
+        logger.error(f"Error en análisis inicial: {str(e)}")
+        raise
 
 # Endpoints
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("inicio.html", {
         "request": request,
-        "status": "ready" if analysis_done else "loading",
-        "data_ready": data_loaded,
-        "total_reseñas": len(df) if data_loaded else 0
+        "ready": analysis_complete,
+        "total": len(df) if analysis_complete else 0
     })
 
-# GET para mostrar el formulario
 @app.get("/formulario", response_class=HTMLResponse)
-async def mostrar_formulario(request: Request):
-    if not data_loaded:
-        return templates.TemplateResponse("error.html", {
-            "request": request,
-            "message": "Base de datos no disponible"
-        })
-    
-    if not analysis_done:
+async def show_form(request: Request):
+    if not analysis_complete:
         return templates.TemplateResponse("espera.html", {
             "request": request,
-            "message": "El análisis de sentimientos está en progreso...",
-            "refresh_interval": 5
+            "message": "Análisis inicial en progreso..."
         })
     
-    generos = sorted(df['genero'].dropna().unique()) if not df.empty else []
+    generos = sorted(df['genero'].dropna().unique())
     return templates.TemplateResponse("formulario.html", {
         "request": request,
-        "generos": generos,
-        "sentimientos": ["positivo", "neutral", "negativo"]
+        "generos": generos
     })
 
-# POST para procesar el formulario
 @app.post("/formulario", response_class=HTMLResponse)
-async def procesar_formulario(
+async def process_form(
     request: Request,
-    sentimiento: Optional[str] = Form(None),
-    genero: Optional[str] = Form(None),
-    top: int = Form(5)
+    genero: str = Form(None),
+    sentimiento: str = Form(None)
 ):
     try:
         df_filtrado = df.copy()
-        if sentimiento:
-            df_filtrado = df_filtrado[df_filtrado["sentimiento"] == sentimiento]
         if genero:
-            df_filtrado = df_filtrado[df_filtrado["genero"].str.lower() == genero.lower()]
-
-        ranking = df_filtrado["pelicula"].value_counts().head(top).to_dict()
+            df_filtrado = df_filtrado[df_filtrado['genero'] == genero]
+        if sentimiento:
+            df_filtrado = df_filtrado[df_filtrado['sentimiento'] == sentimiento]
+            
+        resultados = df_filtrado.head(10).to_dict(orient="records")
         
         return templates.TemplateResponse("resultado.html", {
             "request": request,
-            "ranking": ranking,
-            "sentimiento": sentimiento,
-            "genero": genero,
-            "top": top
+            "resultados": resultados
         })
     except Exception as e:
-        logger.error(f"Error procesando formulario: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error interno")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
