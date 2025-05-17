@@ -1,4 +1,3 @@
-# main.py
 from fastapi import FastAPI, HTTPException, Query, Request, Form
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -10,54 +9,57 @@ from typing import Optional
 import os
 from concurrent.futures import ThreadPoolExecutor
 import logging
+import uvicorn
 
-# Configuración básica
+# Configuración de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="API de Reseñas", version="1.1")
+app = FastAPI(title="API de Reseñas de Películas", version="1.0")
 
-# Templates
+# Configuración inicial
 templates = Jinja2Templates(directory="templates")
-
-# Variables globales
 df = None
 sentiment_model = None
 analysis_done = False
+executor = ThreadPoolExecutor(max_workers=1)
 
-# Carga inicial ligera
-@app.on_event("startup")
-def startup():
+# Health Check para Railway
+@app.get("/health")
+def health_check():
+    return {
+        "status": "ok",
+        "analysis_ready": analysis_done,
+        "model_loaded": sentiment_model is not None
+    }
+
+# Cargar datos sin análisis inicial
+def load_data():
     global df
     try:
         df = pd.read_csv("reseñas_peliculas_separador_punto_coma.csv", sep=";")
         logger.info("Dataset cargado (sin análisis inicial)")
-        
-        # Inicia análisis en segundo plano
-        executor = ThreadPoolExecutor(max_workers=1)
-        executor.submit(analyze_sentiments_background)
     except Exception as e:
-        logger.error(f"Error startup: {str(e)}")
-        raise
+        logger.error(f"No se pudo cargar el CSV: {str(e)}")
+        raise RuntimeError(f"No se pudo cargar el CSV: {str(e)}")
 
-# Análisis en segundo plano
-def analyze_sentiments_background():
-    global sentiment_model, analysis_done
-    
+# Análisis de sentimientos optimizado para Railway
+def analyze_sentiments():
+    global df, sentiment_model, analysis_done
     try:
-        logger.info("Iniciando análisis de sentimientos...")
-        device = 0 if torch.cuda.is_available() else -1
+        logger.info("Iniciando análisis de sentimientos en segundo plano...")
+        device = -1  # Forzamos CPU para evitar problemas en Railway
         
-        # Modelo más ligero para producción
+        # Usamos un modelo más ligero para producción
         sentiment_model = pipeline(
             "sentiment-analysis",
             model="distilbert-base-uncased-finetuned-sst-2-english",
             device=device,
-            framework="pt"
+            truncation=True
         )
         
-        # Procesamiento por micro-lotes
-        batch_size = 8
+        # Procesamiento por lotes pequeños
+        batch_size = 4
         texts = df['razon'].tolist()
         sentiments = []
         
@@ -72,40 +74,94 @@ def analyze_sentiments_background():
             except Exception as e:
                 logger.warning(f"Error en lote {i}: {str(e)}")
                 sentiments.extend(["error"] * len(batch))
-                
+        
         df['sentimiento'] = sentiments
         analysis_done = True
-        logger.info("Análisis completado!")
-        
+        logger.info("Análisis de sentimientos completado")
     except Exception as e:
-        logger.error(f"Error análisis: {str(e)}")
+        logger.error(f"Error en análisis: {str(e)}")
         df['sentimiento'] = "error"
 
-# Endpoints
+# Cargar datos al iniciar
+load_data()
+
+# Endpoints originales
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
+async def root(request: Request):
     return templates.TemplateResponse("inicio.html", {
         "request": request,
-        "status": "ready" if analysis_done else "processing"
+        "status": "ready" if analysis_done else "loading"
     })
 
 @app.get("/formulario", response_class=HTMLResponse)
-async def show_form(request: Request):
-    if not analysis_done:
-        return templates.TemplateResponse("loading.html", {
-            "request": request,
-            "message": "Analizando reseñas... (esto puede tomar 2 minutos)"
-        })
+async def mostrar_formulario(request: Request):
+    # Iniciar análisis en segundo plano si es la primera consulta
+    if not analysis_done and not sentiment_model:
+        executor.submit(analyze_sentiments)
     
     generos = sorted(df['genero'].dropna().unique())
-    return templates.TemplateResponse("formulario.html", {
-        "request": request,
-        "generos": generos
-    })
+    return templates.TemplateResponse(
+        "formulario.html",
+        {
+            "request": request,
+            "generos": generos,
+            "sentimientos": ["positivo", "neutral", "negativo"],
+            "analysis_done": analysis_done
+        }
+    )
 
-# ... (otros endpoints como en tu código original)
+@app.post("/formulario", response_class=HTMLResponse)
+async def procesar_formulario(
+    request: Request,
+    sentimiento: Optional[str] = Form(None),
+    genero: Optional[str] = Form(None),
+    top: int = Form(5)
+):
+    if not analysis_done:
+        return templates.TemplateResponse(
+            "espera.html",
+            {
+                "request": request,
+                "mensaje": "El análisis de sentimientos está en progreso...",
+                "refresh_interval": 5  # Segundos para auto-recarga
+            }
+        )
+    
+    try:
+        df_filtrado = df.copy()
+        if sentimiento:
+            df_filtrado = df_filtrado[df_filtrado["sentimiento"] == sentimiento]
+        if genero:
+            df_filtrado = df_filtrado[df_filtrado["genero"].str.lower() == genero.lower()]
+
+        ranking = df_filtrado["pelicula"].value_counts().head(top).to_dict()
+        
+        return templates.TemplateResponse(
+            "resultado.html",
+            {
+                "request": request,
+                "ranking": ranking,
+                "sentimiento": sentimiento,
+                "genero": genero,
+                "top": top
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error procesando formulario: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno")
+
+# Endpoint para API JSON
+@app.get("/reseñas")
+def obtener_reseñas(skip: int = 0, limit: int = 10):
+    if not analysis_done:
+        raise HTTPException(status_code=503, detail="Análisis en progreso")
+    return df.iloc[skip:skip + limit].to_dict(orient="records")
 
 if __name__ == "__main__":
-    import uvicorn
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=port,
+        timeout_keep_alive=300  # Mayor tiempo para análisis
+    )
