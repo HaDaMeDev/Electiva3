@@ -3,13 +3,14 @@
   "build": {
     "builder": "nixpacks",
     "config": {
-      "maxMemory": 512,
-      "timeout": 300
+      "maxMemory": 1024,
+      "timeout": 600
     }
   },
   "deploy": {
     "startCommand": "uvicorn main:app --host 0.0.0.0 --port $PORT",
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 120
+    "healthcheckTimeout": 120,
+    "healthcheckInterval": 30
   }
 }

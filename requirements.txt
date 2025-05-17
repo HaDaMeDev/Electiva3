@@ -3,6 +3,5 @@ uvicorn==0.27.0
 pandas==2.1.4
 transformers==4.37.2
 torch==2.2.1 --extra-index-url https://download.pytorch.org/whl/cpu
-huggingface_hub[hf_xet]==0.22.0
 python-multipart==0.0.6
 jinja2==3.1.3
