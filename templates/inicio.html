@@ -3,98 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análisis de Sentimientos de Películas</title>
+    <title>Análisis de Reseñas</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-            color: #333;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #2c3e50;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .status {
-            padding: 10px;
-            border-radius: 5px;
-            text-align: center;
-            margin: 20px 0;
-            font-weight: bold;
-        }
-        .ready {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .loading {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-        .btn {
-            display: inline-block;
-            background: #3498db;
-            color: white;
-            padding: 10px 20px;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-top: 20px;
-            transition: background 0.3s;
-        }
-        .btn:hover {
-            background: #2980b9;
-        }
-        .features {
-            margin: 30px 0;
-        }
-        .feature {
-            margin-bottom: 15px;
-            padding-left: 20px;
-            border-left: 3px solid #3498db;
-        }
+        .status-ready { color: green; }
+        .status-loading { color: orange; }
+        .status-error { color: red; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>API de Análisis de Sentimientos de Películas</h1>
-        
-        <div class="status {% if status == 'ready' %}ready{% else %}loading{% endif %}">
-            {% if status == 'ready' %}
-                ✅ Sistema listo para analizar reseñas
-            {% else %}
-                ⏳ El sistema se está inicializando (por favor espere...)
-            {% endif %}
-        </div>
+    <h1>Sistema de Análisis de Sentimientos</h1>
+    
+    <div class="status">
+        {% if status == 'ready' %}
+            <p class="status-ready">✅ Sistema listo</p>
+        {% else %}
+            <p class="status-loading">⏳ Sistema cargando...</p>
+        {% endif %}
+    </div>
 
-        <div class="features">
-            <div class="feature">
-                <strong>Análisis en tiempo real:</strong> Clasificación de reseñas como Positivas, Neutrales o Negativas
-            </div>
-            <div class="feature">
-                <strong>Base de datos:</strong> {{ df.shape[0] }} reseñas disponibles para análisis
-            </div>
-            <div class="feature">
-                <strong>Tecnología:</strong> Modelo DistilBERT optimizado para producción
-            </div>
-        </div>
-
-        <div style="text-align: center;">
-            <a href="/formulario" class="btn">Ir al Formulario de Análisis</a>
-        </div>
-
-        <footer style="margin-top: 40px; text-align: center; font-size: 0.9em; color: #7f8c8d;">
-            Sistema desarrollado con FastAPI y Transformers | Desplegado en Railway
-        </footer>
+    <div class="stats">
+        {% if data_ready %}
+            <p>Reseñas disponibles: {{ total_reseñas }}</p>
+            <a href="/formulario">Ir al formulario</a>
+        {% else %}
+            <p class="status-error">⚠️ Datos no disponibles</p>
+        {% endif %}
     </div>
 </body>
 </html>
