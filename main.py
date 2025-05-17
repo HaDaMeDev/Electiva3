@@ -1,3 +1,4 @@
+# main.py
 from fastapi import FastAPI, HTTPException, Query, Request, Form
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -8,110 +9,103 @@ import torch
 from typing import Optional
 import os
 from concurrent.futures import ThreadPoolExecutor
+import logging
 
-app = FastAPI(title="API de Reseñas de Películas", version="1.0")
+# Configuración básica
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Configuración inicial
+app = FastAPI(title="API de Reseñas", version="1.1")
+
+# Templates
 templates = Jinja2Templates(directory="templates")
+
+# Variables globales
 df = None
 sentiment_model = None
 analysis_done = False
-executor = ThreadPoolExecutor(max_workers=1)
 
-# Cargar datos sin análisis inicial
-def load_data():
+# Carga inicial ligera
+@app.on_event("startup")
+def startup():
     global df
     try:
         df = pd.read_csv("reseñas_peliculas_separador_punto_coma.csv", sep=";")
-        print("Dataset cargado (sin análisis inicial)")
+        logger.info("Dataset cargado (sin análisis inicial)")
+        
+        # Inicia análisis en segundo plano
+        executor = ThreadPoolExecutor(max_workers=1)
+        executor.submit(analyze_sentiments_background)
     except Exception as e:
-        raise RuntimeError(f"No se pudo cargar el CSV: {str(e)}")
+        logger.error(f"Error startup: {str(e)}")
+        raise
 
-# Análisis de sentimientos (se ejecutará en segundo plano)
-def analyze_sentiments():
-    global df, sentiment_model, analysis_done
+# Análisis en segundo plano
+def analyze_sentiments_background():
+    global sentiment_model, analysis_done
+    
     try:
-        print("Iniciando análisis de sentimientos en segundo plano...")
+        logger.info("Iniciando análisis de sentimientos...")
         device = 0 if torch.cuda.is_available() else -1
+        
+        # Modelo más ligero para producción
         sentiment_model = pipeline(
             "sentiment-analysis",
-            model="nlptown/bert-base-multilingual-uncased-sentiment",
-            device=device
+            model="distilbert-base-uncased-finetuned-sst-2-english",
+            device=device,
+            framework="pt"
         )
         
-        sentimientos = []
-        for texto in df['razon']:
-            try:
-                resultado = sentiment_model(texto[:512])[0]
-                rating = int(resultado['label'][0])
-                sentimiento = "positivo" if rating >= 4 else "neutral" if rating == 3 else "negativo"
-            except:
-                sentimiento = "error"
-            sentimientos.append(sentimiento)
+        # Procesamiento por micro-lotes
+        batch_size = 8
+        texts = df['razon'].tolist()
+        sentiments = []
         
-        df['sentimiento'] = sentimientos
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i + batch_size]
+            try:
+                results = sentiment_model(batch)
+                sentiments.extend([
+                    "positivo" if res['label'] == "POSITIVE" else "negativo"
+                    for res in results
+                ])
+            except Exception as e:
+                logger.warning(f"Error en lote {i}: {str(e)}")
+                sentiments.extend(["error"] * len(batch))
+                
+        df['sentimiento'] = sentiments
         analysis_done = True
-        print("Análisis de sentimientos completado")
+        logger.info("Análisis completado!")
+        
     except Exception as e:
-        print(f"Error en análisis: {str(e)}")
+        logger.error(f"Error análisis: {str(e)}")
         df['sentimiento'] = "error"
-
-# Cargar datos inmediatamente al iniciar
-load_data()
 
 # Endpoints
 @app.get("/", response_class=HTMLResponse)
-async def root(request: Request):
-    return templates.TemplateResponse("inicio.html", {"request": request})
+async def home(request: Request):
+    return templates.TemplateResponse("inicio.html", {
+        "request": request,
+        "status": "ready" if analysis_done else "processing"
+    })
 
 @app.get("/formulario", response_class=HTMLResponse)
-async def mostrar_formulario(request: Request):
-    # Iniciar análisis en segundo plano si es la primera consulta
-    if not analysis_done and not sentiment_model:
-        executor.submit(analyze_sentiments)
+async def show_form(request: Request):
+    if not analysis_done:
+        return templates.TemplateResponse("loading.html", {
+            "request": request,
+            "message": "Analizando reseñas... (esto puede tomar 2 minutos)"
+        })
     
     generos = sorted(df['genero'].dropna().unique())
-    return templates.TemplateResponse(
-        "formulario.html",
-        {
-            "request": request,
-            "generos": generos,
-            "sentimientos": ["positivo", "neutral", "negativo"]
-        }
-    )
+    return templates.TemplateResponse("formulario.html", {
+        "request": request,
+        "generos": generos
+    })
 
-@app.post("/formulario", response_class=HTMLResponse)
-async def procesar_formulario(
-    request: Request,
-    sentimiento: Optional[str] = Form(None),
-    genero: Optional[str] = Form(None),
-    top: int = Form(5)
-):
-    # Mostrar resultados aunque el análisis no haya terminado
-    if not analysis_done:
-        return templates.TemplateResponse(
-            "espera.html",
-            {"request": request, "mensaje": "El análisis de sentimientos está en progreso..."}
-        )
-    
-    # Procesar filtros
-    df_filtrado = df.copy()
-    if sentimiento:
-        df_filtrado = df_filtrado[df_filtrado["sentimiento"] == sentimiento]
-    if genero:
-        df_filtrado = df_filtrado[df_filtrado["genero"].str.lower() == genero.lower()]
+# ... (otros endpoints como en tu código original)
 
-    ranking = df_filtrado["pelicula"].value_counts().head(top).to_dict()
-    
-    return templates.TemplateResponse(
-        "resultado.html",
-        {
-            "request": request,
-            "ranking": ranking,
-            "sentimiento": sentimiento,
-            "genero": genero,
-            "top": top
-        }
-    )
-
-# Resto de endpoints (reseñas, analizar, estadisticas, etc.)...
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
