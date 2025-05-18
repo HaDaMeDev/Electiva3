@@ -1,98 +1,56 @@
+# main.py
 from fastapi import FastAPI, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 import pandas as pd
-from transformers import pipeline
-import torch
 import logging
-from concurrent.futures import ThreadPoolExecutor
-import uvicorn
 from typing import Optional
 import os
+import uvicorn
 
+# Configuración
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="API de Reseñas de Películas", version="1.2")
+app = FastAPI(title="API de Reseñas de Películas", version="2.0")
 templates = Jinja2Templates(directory="templates")
 
+# Variables de estado
 df = pd.DataFrame()
-sentiment_model = None
-analysis_done = False
 data_loaded = False
 
-@app.get("/health")
-def health_check():
-    return {
-        "status": "ok",
-        "data_loaded": data_loaded,
-        "analysis_done": analysis_done
-    }
-
+# Cargar CSV ya procesado
 def load_data():
     global df, data_loaded
     try:
-        df = pd.read_csv("reseñas_peliculas_separador_punto_coma.csv", sep=";")
+        df = pd.read_csv("reseñas_procesadas.csv")
         data_loaded = True
-        logger.info("Datos cargados exitosamente")
+        logger.info("Datos cargados exitosamente.")
         return True
     except Exception as e:
-        logger.error(f"Error cargando datos: {str(e)}")
+        logger.error(f"Error al cargar datos: {e}")
         return False
 
-def analyze_sentiments():
-    global sentiment_model, analysis_done
-    try:
-        logger.info("Iniciando análisis de sentimientos...")
-        sentiment_model = pipeline(
-            "sentiment-analysis",
-            model="distilbert-base-uncased-finetuned-sst-2-english",
-            device=0 if torch.cuda.is_available() else -1
-        )
-        batch_size = 4
-        texts = df['razon'].astype(str).tolist()
-        sentiments = []
-        for i in range(0, len(texts), batch_size):
-            batch = texts[i:i + batch_size]
-            try:
-                results = sentiment_model(batch)
-                sentiments.extend([
-                    "positivo" if res['label'] == "POSITIVE" else "negativo"
-                    for res in results
-                ])
-            except Exception as e:
-                logger.warning(f"Error en lote {i}: {str(e)}")
-                sentiments.extend(["error"] * len(batch))
-        df['sentimiento'] = sentiments
-        analysis_done = True
-        logger.info("Análisis completado")
-    except Exception as e:
-        logger.error(f"Error en análisis: {str(e)}")
+# Cargar al iniciar
+load_data()
 
-if load_data():
-    ThreadPoolExecutor().submit(analyze_sentiments)
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "data_loaded": data_loaded, "total_reseñas": len(df) if data_loaded else 0}
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse("espera.html" if not analysis_done else "formulario.html", {
+    return templates.TemplateResponse("inicio.html", {
         "request": request,
-        "message": "Cargando modelo y analizando reseñas..." if not analysis_done else "",
-        "generos": sorted(df['genero'].dropna().unique()) if analysis_done else [],
-        "sentimientos": ["positivo", "negativo"]
+        "status": "ready" if data_loaded else "loading",
+        "total_reseñas": len(df) if data_loaded else 0
     })
 
 @app.get("/formulario", response_class=HTMLResponse)
 async def mostrar_formulario(request: Request):
     if not data_loaded:
-        return templates.TemplateResponse("error.html", {
-            "request": request,
-            "message": "Base de datos no disponible"
-        })
-    if not analysis_done:
-        return templates.TemplateResponse("espera.html", {
-            "request": request,
-            "message": "El análisis de sentimientos está en progreso...",
-        })
+        return templates.TemplateResponse("error.html", {"request": request, "message": "Datos no cargados"})
+    
     generos = sorted(df['genero'].dropna().unique())
     return templates.TemplateResponse("formulario.html", {
         "request": request,
@@ -114,6 +72,7 @@ async def procesar_formulario(
         if genero:
             df_filtrado = df_filtrado[df_filtrado["genero"].str.lower() == genero.lower()]
         ranking = df_filtrado["pelicula"].value_counts().head(top).to_dict()
+        
         return templates.TemplateResponse("resultado.html", {
             "request": request,
             "ranking": ranking,
