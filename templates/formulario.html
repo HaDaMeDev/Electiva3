@@ -1,69 +1,27 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Filtrar Reseñas</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 20px;
-        }
-        form {
-            max-width: 500px;
-            margin: 0 auto;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        label {
-            display: block;
-            margin-top: 10px;
-        }
-        select, input[type="number"] {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-        }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 15px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-    </style>
-</head>
+<html>
+<head><title>Formulario de Filtro</title></head>
 <body>
-    <h1>Filtrar Reseñas de Películas</h1>
-    
-    <form method="post" action="/formulario">
-        <label for="genero">Género:</label>
-        <select name="genero" id="genero">
-            <option value="">Todos los géneros</option>
-            {% for genero in generos %}
-                <option value="{{ genero }}">{{ genero }}</option>
+    <h2>Selecciona filtros para ver el top de películas</h2>
+    <form method="post">
+        <label>Sentimiento:</label>
+        <select name="sentimiento">
+            {% for s in sentimientos %}
+                <option value="{{ s }}">{{ s }}</option>
             {% endfor %}
-        </select>
+        </select><br><br>
 
-        <label for="sentimiento">Sentimiento:</label>
-        <select name="sentimiento" id="sentimiento">
-            <option value="">Todos</option>
-            <option value="positivo">Positivo</option>
-            <option value="neutral">Neutral</option>
-            <option value="negativo">Negativo</option>
-        </select>
+        <label>Género:</label>
+        <select name="genero">
+            {% for g in generos %}
+                <option value="{{ g }}">{{ g }}</option>
+            {% endfor %}
+        </select><br><br>
 
-        <label for="top">Número de resultados:</label>
-        <input type="number" name="top" id="top" min="1" value="5">
+        <label>Top:</label>
+        <input type="number" name="top" value="5" min="1" max="20"><br><br>
 
-        <button type="submit">Filtrar</button>
+        <button type="submit">Consultar</button>
     </form>
 </body>
 </html>
