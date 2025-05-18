@@ -1,25 +1,30 @@
 <!DOCTYPE html>
-<html>
-<head><title>Formulario de Filtro</title></head>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Formulario de Top Películas</title>
+</head>
 <body>
-    <h2>Selecciona filtros para ver el top de películas</h2>
-    <form method="post">
-        <label>Sentimiento:</label>
-        <select name="sentimiento">
+    <h1>Consulta Top de Películas</h1>
+    <form action="/formulario" method="post">
+        <label for="sentimiento">Sentimiento:</label>
+        <select name="sentimiento" id="sentimiento">
+            <option value="">-- Todos --</option>
             {% for s in sentimientos %}
-                <option value="{{ s }}">{{ s }}</option>
+                <option value="{{ s }}">{{ s.capitalize() }}</option>
             {% endfor %}
-        </select><br><br>
+        </select>
 
-        <label>Género:</label>
-        <select name="genero">
+        <label for="genero">Género:</label>
+        <select name="genero" id="genero">
+            <option value="">-- Todos --</option>
             {% for g in generos %}
                 <option value="{{ g }}">{{ g }}</option>
             {% endfor %}
-        </select><br><br>
+        </select>
 
-        <label>Top:</label>
-        <input type="number" name="top" value="5" min="1" max="20"><br><br>
+        <label for="top">Cantidad:</label>
+        <input type="number" name="top" value="5" min="1" max="20">
 
         <button type="submit">Consultar</button>
     </form>

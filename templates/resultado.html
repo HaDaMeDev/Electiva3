@@ -1,14 +1,21 @@
 <!DOCTYPE html>
-<html>
-<head><title>Resultado</title></head>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Resultado del Top</title>
+</head>
 <body>
-    <h2>Top {{ top }} películas</h2>
-    <p>Filtro: Sentimiento = {{ sentimiento }}, Género = {{ genero }}</p>
+    <h1>Resultado del Top de Películas</h1>
+    <p>Sentimiento: {{ sentimiento or "Todos" }}</p>
+    <p>Género: {{ genero or "Todos" }}</p>
+    <p>Top: {{ top }}</p>
+
     <ul>
-        {% for pelicula, cantidad in ranking.items() %}
-            <li>{{ pelicula }} ({{ cantidad }} reseñas)</li>
+        {% for peli, count in ranking.items() %}
+            <li>{{ peli }} - {{ count }} reseñas</li>
         {% endfor %}
     </ul>
+
     <a href="/formulario">Volver</a>
 </body>
 </html>

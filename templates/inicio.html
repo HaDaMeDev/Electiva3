@@ -1,15 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Estado del Sistema</title>
+    <meta charset="UTF-8">
+    <title>Inicio - API de Reseñas</title>
 </head>
 <body>
-    <h1>Análisis de Reseñas</h1>
-    {% if ready %}
-        <p>✅ Sistema listo ({{ total }} reseñas procesadas)</p>
+    <h1>Bienvenido a la API de Reseñas de Películas</h1>
+    <p>Estado de los datos: {{ "Listo" if data_ready else "Cargando..." }}</p>
+    <p>Análisis de sentimientos: {{ "Completado" if status == "ready" else "En progreso..." }}</p>
+    <p>Total de reseñas cargadas: {{ total_reseñas }}</p>
+    {% if status == "ready" %}
         <a href="/formulario">Ir al formulario</a>
-    {% else %}
-        <p>⏳ Cargando análisis inicial...</p>
     {% endif %}
 </body>
 </html>
