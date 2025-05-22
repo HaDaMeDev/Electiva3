@@ -2,20 +2,272 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Resultado del Top</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FilmCritic - Resultados del Top</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Oswald:wght@500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #0f0f1a;
+            --secondary-color: #e50914;
+            --accent-color: #f5c518;
+            --light-color: #ffffff;
+            --dark-color: #0a0a12;
+            --text-color: #e1e1e1;
+            --bg-gradient: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(15, 15, 26, 0.9);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            padding: 2.5rem;
+            border: 1px solid rgba(229, 9, 20, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Efecto de película */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: repeating-linear-gradient(
+                to right,
+                #000 0px,
+                #000 10px,
+                var(--accent-color) 10px,
+                var(--accent-color) 20px
+            );
+        }
+        
+        h1 {
+            font-family: 'Oswald', sans-serif;
+            color: var(--accent-color);
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+        }
+        
+        h1::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 4px;
+            background: var(--accent-color);
+            margin: 1rem auto;
+            border-radius: 2px;
+        }
+        
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            background: rgba(10, 10, 18, 0.6);
+            padding: 1.5rem;
+            border-radius: 6px;
+            border-left: 3px solid var(--accent-color);
+        }
+        
+        .filter-item {
+            margin-bottom: 0.5rem;
+        }
+        
+        .filter-item strong {
+            color: var(--accent-color);
+            display: block;
+            margin-bottom: 0.3rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .filter-item p {
+            font-size: 1.1rem;
+            color: var(--light-color);
+        }
+        
+        .ranking-list {
+            list-style: none;
+            margin: 2rem 0;
+        }
+        
+        .ranking-item {
+            background: rgba(10, 10, 18, 0.6);
+            margin-bottom: 0.8rem;
+            padding: 1rem 1.5rem;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.3s ease;
+            border-left: 3px solid var(--secondary-color);
+        }
+        
+        .ranking-item:hover {
+            transform: translateX(5px);
+            background: rgba(229, 9, 20, 0.1);
+        }
+        
+        .ranking-position {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.5rem;
+            color: var(--accent-color);
+            min-width: 40px;
+            text-align: center;
+        }
+        
+        .ranking-movie {
+            flex-grow: 1;
+            padding: 0 1.5rem;
+            font-size: 1.1rem;
+        }
+        
+        .ranking-count {
+            background: var(--accent-color);
+            color: var(--dark-color);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 700;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: 'Oswald', sans-serif;
+            margin-top: 1rem;
+        }
+        
+        .btn:hover {
+            background-color: #ff0000;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(229, 9, 20, 0.4);
+        }
+        
+        .btn i {
+            margin-right: 8px;
+        }
+        
+        footer {
+            margin-top: 3rem;
+            color: var(--text-color);
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        .trophy {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: var(--accent-color);
+            font-size: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1.5rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .ranking-item {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 1rem;
+            }
+            
+            .ranking-position {
+                margin-bottom: 0.5rem;
+            }
+            
+            .ranking-movie {
+                padding: 0;
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>Resultado del Top de Películas</h1>
-    <p>Sentimiento: {{ sentimiento or "Todos" }}</p>
-    <p>Género: {{ genero or "Todos" }}</p>
-    <p>Top: {{ top }}</p>
-
-    <ul>
-        {% for peli, count in ranking.items() %}
-            <li>{{ peli }} - {{ count }} reseñas</li>
-        {% endfor %}
-    </ul>
-
-    <a href="/formulario">Volver</a>
+    <div class="container">
+        <div class="trophy">
+            <i class="fas fa-trophy"></i>
+        </div>
+        
+        <h1>TOP {{ top }} PELÍCULAS</h1>
+        
+        <div class="filters">
+            <div class="filter-item">
+                <strong>Sentimiento</strong>
+                <p>{{ sentimiento or "Todos" }}</p>
+            </div>
+            <div class="filter-item">
+                <strong>Género</strong>
+                <p>{{ genero or "Todos" }}</p>
+            </div>
+            <div class="filter-item">
+                <strong>Resultados</strong>
+                <p>Top {{ top }}</p>
+            </div>
+        </div>
+        
+        <ul class="ranking-list">
+            {% for peli, count in ranking.items() %}
+            <li class="ranking-item">
+                <div class="ranking-position">#{{ loop.index }}</div>
+                <div class="ranking-movie">{{ peli }}</div>
+                <div class="ranking-count">{{ count }} reseñas</div>
+            </li>
+            {% endfor %}
+        </ul>
+        
+        <a href="/formulario" class="btn"><i class="fas fa-arrow-left"></i> Volver al formulario</a>
+    </div>
+    
+    <footer>
+        <p>&copy; FilmCritic - Todos los derechos reservados</p>
+        <div style="margin-top: 0.5rem;">
+            <i class="fab fa-imdb" style="color: var(--accent-color); font-size: 1.5rem;"></i>
+        </div>
+    </footer>
 </body>
 </html>

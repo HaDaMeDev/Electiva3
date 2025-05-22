@@ -1,11 +1,208 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Cargando...</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FilmCritic - Cargando...</title>
     <meta http-equiv="refresh" content="5">  <!-- Auto-recarga cada 5s -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Oswald:wght@500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #0f0f1a;
+            --secondary-color: #e50914;
+            --accent-color: #f5c518;
+            --light-color: #ffffff;
+            --dark-color: #0a0a12;
+            --text-color: #e1e1e1;
+            --bg-gradient: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .loading-container {
+            background: rgba(15, 15, 26, 0.9);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            padding: 3rem;
+            border: 1px solid rgba(229, 9, 20, 0.3);
+            position: relative;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        /* Efecto de película */
+        .loading-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: repeating-linear-gradient(
+                to right,
+                #000 0px,
+                #000 10px,
+                var(--accent-color) 10px,
+                var(--accent-color) 20px
+            );
+        }
+        
+        h1 {
+            font-family: 'Oswald', sans-serif;
+            color: var(--accent-color);
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        h1 i {
+            margin-right: 15px;
+            font-size: 2.2rem;
+        }
+        
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            color: #aaa;
+        }
+        
+        /* Animación de carga */
+        .loader {
+            width: 100%;
+            height: 8px;
+            background: rgba(229, 9, 20, 0.2);
+            border-radius: 4px;
+            margin: 2rem 0;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .loader::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 50%;
+            background: linear-gradient(90deg, var(--secondary-color), var(--accent-color));
+            border-radius: 4px;
+            animation: loading 2s ease-in-out infinite;
+        }
+        
+        @keyframes loading {
+            0% { left: -50%; }
+            100% { left: 150%; }
+        }
+        
+        .film-reel {
+            font-size: 3rem;
+            color: var(--accent-color);
+            margin: 1.5rem 0;
+            animation: spin 4s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        footer {
+            margin-top: 3rem;
+            color: var(--text-color);
+            font-size: 0.9rem;
+        }
+        
+        /* Efecto de luz de proyector */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50px;
+            left: -100px;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(245, 197, 24, 0.15) 0%, rgba(245, 197, 24, 0) 70%);
+            z-index: -1;
+        }
+        
+        .countdown {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.2rem;
+            color: var(--accent-color);
+            margin-top: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .loading-container {
+                padding: 2rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>{{ message }}</h1>
-    <p>La aplicación estará lista automáticamente.</p>
+    <div class="loading-container">
+        <div class="film-reel">
+            <i class="fas fa-film"></i>
+        </div>
+        
+        <h1><i class="fas fa-spinner"></i> {{ message }}</h1>
+        
+        <div class="loader"></div>
+        
+        <p>Preparando nuestra plataforma de análisis cinematográfico...</p>
+        <p class="countdown">La aplicación se actualizará automáticamente</p>
+    </div>
+    
+    <footer>
+        <p>&copy; 2023 FilmCritic - Todos los derechos reservados</p>
+        <div style="margin-top: 0.5rem;">
+            <i class="fab fa-imdb" style="color: var(--accent-color); font-size: 1.5rem;"></i>
+        </div>
+    </footer>
+
+    <script>
+        // Contador regresivo para la recarga
+        let seconds = 5;
+        const countdownElement = document.querySelector('.countdown');
+        
+        const updateCountdown = () => {
+            countdownElement.textContent = `Recargando en ${seconds} segundos...`;
+            seconds--;
+            
+            if (seconds < 0) {
+                seconds = 5;
+            }
+        };
+        
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+    </script>
 </body>
 </html>

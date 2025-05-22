@@ -2,15 +2,442 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Inicio - API de Reseñas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FilmCritic - Análisis de Reseñas de Películas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Oswald:wght@500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #0f0f1a;
+            --secondary-color: #e50914;
+            --accent-color: #f5c518;
+            --light-color: #ffffff;
+            --dark-color: #0a0a12;
+            --text-color: #e1e1e1;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --bg-gradient: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        header {
+            background-color: rgba(15, 15, 26, 0.9);
+            color: white;
+            padding: 1.5rem 0;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 10;
+            border-bottom: 1px solid var(--secondary-color);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-family: 'Oswald', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 600;
+            color: white;
+            text-decoration: none;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo span {
+            color: var(--secondary-color);
+            margin-left: 8px;
+        }
+        
+        .logo i {
+            color: var(--accent-color);
+            margin-right: 10px;
+            font-size: 1.8rem;
+        }
+        
+        main {
+            padding: 3rem 0;
+            position: relative;
+        }
+        
+        /* Efecto de luz de proyector */
+        main::before {
+            content: '';
+            position: absolute;
+            top: -50px;
+            left: -100px;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(245, 197, 24, 0.15) 0%, rgba(245, 197, 24, 0) 70%);
+            z-index: -1;
+        }
+        
+        .dashboard {
+            background: rgba(15, 15, 26, 0.85);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(229, 9, 20, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Efecto de película */
+        .dashboard::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: repeating-linear-gradient(
+                to right,
+                #000 0px,
+                #000 10px,
+                var(--accent-color) 10px,
+                var(--accent-color) 20px
+            );
+        }
+        
+        h1 {
+            font-family: 'Oswald', sans-serif;
+            color: var(--light-color);
+            margin-bottom: 1.5rem;
+            font-size: 2.5rem;
+            text-align: center;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        h1::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 4px;
+            background: var(--accent-color);
+            margin: 0.8rem auto;
+            border-radius: 2px;
+        }
+        
+        .status-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: rgba(10, 10, 18, 0.7);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border-left: 4px solid var(--accent-color);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card h3 {
+            color: var(--light-color);
+            margin-bottom: 0.8rem;
+            font-size: 1.1rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card h3 i {
+            margin-right: 10px;
+            color: var(--accent-color);
+        }
+        
+        .card p {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--light-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+        
+        .status.ready {
+            background-color: rgba(39, 174, 96, 0.2);
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+        
+        .status.loading {
+            background-color: rgba(243, 156, 18, 0.2);
+            color: var(--warning-color);
+            border: 1px solid var(--warning-color);
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: 'Oswald', sans-serif;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: 0.5s;
+        }
+        
+        .btn:hover {
+            background-color: #ff0000;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(229, 9, 20, 0.4);
+        }
+        
+        .btn:hover::after {
+            left: 100%;
+        }
+        
+        .btn:disabled {
+            background-color: #7f8c8d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn:disabled:hover::after {
+            left: -100%;
+        }
+        
+        .btn i {
+            margin-right: 8px;
+        }
+        
+        footer {
+            background-color: rgba(10, 10, 18, 0.9);
+            color: var(--text-color);
+            text-align: center;
+            padding: 1.5rem 0;
+            margin-top: 3rem;
+            border-top: 1px solid rgba(229, 9, 20, 0.3);
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .feature {
+            background: rgba(15, 15, 26, 0.85);
+            padding: 1.8rem;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(229, 9, 20, 0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .feature:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-color);
+        }
+        
+        .feature h3 {
+            color: var(--light-color);
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            font-family: 'Oswald', sans-serif;
+            letter-spacing: 0.5px;
+        }
+        
+        .feature h3 i {
+            margin-right: 1rem;
+            color: var(--accent-color);
+            font-size: 1.2rem;
+        }
+        
+        .feature p {
+            color: #aaa;
+            line-height: 1.7;
+        }
+        
+        .star-rating {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--accent-color);
+            color: var(--dark-color);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            box-shadow: 0 3px 15px rgba(245, 197, 24, 0.5);
+        }
+        
+        /* Efecto de marquesina de cine */
+        .marquee {
+            background: rgba(229, 9, 20, 0.2);
+            color: var(--accent-color);
+            padding: 0.5rem;
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: center;
+            margin-bottom: 2rem;
+            border-top: 1px solid var(--accent-color);
+            border-bottom: 1px solid var(--accent-color);
+            overflow: hidden;
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .logo {
+                margin-bottom: 1rem;
+                font-size: 1.8rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .dashboard {
+                padding: 1.5rem;
+            }
+            
+            .star-rating {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+                top: 10px;
+                right: 10px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>Bienvenido a la API de Reseñas de Películas</h1>
-    <p>Estado de los datos: {{ "Listo" if data_ready else "Cargando..." }}</p>
-    <p>Análisis de sentimientos: {{ "Completado" if status == "ready" else "En progreso..." }}</p>
-    <p>Total de reseñas cargadas: {{ total_reseñas }}</p>
-    {% if status == "ready" %}
-        <a href="/formulario">Ir al formulario</a>
-    {% endif %}
+    <header>
+        <div class="container header-content">
+            <a href="/" class="logo"><i class="fas fa-film"></i>Film<span>Critic</span></a>
+            <nav>
+                <a href="#" class="btn"><i class="fas fa-user"></i> Iniciar Sesión</a>
+            </nav>
+        </div>
+    </header>
+    
+    <main class="container">
+        <div class="marquee">
+            <i class="fas fa-star"></i> ¡Nuevo! Análisis de reseñas mejorado <i class="fas fa-star"></i>
+        </div>
+        
+        <div class="dashboard">
+            <div class="star-rating">
+                <i class="fas fa-star"></i>
+            </div>
+            
+            <h1>Análisis de Reseñas de Películas</h1>
+            
+            <div class="status-cards">
+                <div class="card">
+                    <h3><i class="fas fa-database"></i> Estado de los Datos</h3>
+                    <p>{{ "Listo" if data_ready else "Cargando..." }}</p>
+                    <span class="status {{ 'ready' if data_ready else 'loading' }}">
+                        {{ "Datos disponibles" if data_ready else "Procesando datos..." }}
+                    </span>
+                </div>
+                
+                <div class="card">
+                    <h3><i class="fas fa-brain"></i> Análisis de Sentimientos</h3>
+                    <p>{{ "Completado" if status == "ready" else "En progreso..." }}</p>
+                    <span class="status {{ 'ready' if status == 'ready' else 'loading' }}">
+                        {{ "Listo para analizar" if status == "ready" else "Analizando reseñas..." }}
+                    </span>
+                </div>
+                
+                <div class="card">
+                    <h3><i class="fas fa-list-ol"></i> Total de Reseñas</h3>
+                    <p>{{ total_reseñas }}</p>
+                    <span class="status ready">Reseñas procesadas</span>
+                </div>
+            </div>
+            
+            {% if status == "ready" %}
+                <a href="/formulario" class="btn"><i class="fas fa-search"></i> Analizar Nueva Reseña</a>
+            {% else %}
+                <button class="btn" disabled><i class="fas fa-clock"></i> Analizar Nueva Reseña (disponible pronto)</button>
+            {% endif %}
+        </div>
+        
+
+    </main>
+    
+    <footer>
+        <div class="container">
+            <p>&copy; FilmCritic - Todos los derechos reservados</p>
+            <p>El sistema de análisis de reseñas más completo de la industria</p>
+            <div style="margin-top: 1rem;">
+                <i class="fab fa-imdb" style="color: var(--accent-color); font-size: 2rem;"></i>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>
